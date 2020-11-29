@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>TodoList</title>
+    <!-- 新 Bootstrap4 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+
+    <!-- bootstrap.bundle.min.js 用于弹窗、提示、下拉菜单，包含了 popper.min.js -->
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+
+    <!-- 最新的 Bootstrap4 核心 JavaScript 文件 -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <script src="https://cdn.bootcss.com/vue/2.6.11/vue.min.js"></script>
+    <script src="https://cdn.bootcss.com/axios/0.19.2/axios.min.js"></script>
+
+</head>
+<body>
+<div class="container" id="app">
+    <h2>TodoList</h2>
+    <button class="btn btn-primary float-right" @click="addTodo()">Add</button>
+    <table id="todoTable" class="table">
+        <thead>
+        <tr>
+            <th>Index</th>
+            <th>Content</th>
+            <th>Operations</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="(todo,index) in todos">
+            <td>{{index+1}}</td>
+            <td>{{todo.content}}</td>
+            <td>
+                <button  class="btn btn-xs btn-success"
+                         @click="editTodo(todo,index)">编辑</button>
+                <button class="btn  btn-xs btn-danger"
+                        @click="removeTodo(index)">删除</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- 模态框 -->
+    <div v-if="show_modal">
+        <div class="modal" style="display: block" v-on:click.self="show_modal=false">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <!-- 模态框头部 -->
+                    <div class="modal-header">
+                        <h4 class="modal-title">Add Todo</h4>
+                        <button type="button" class="close" v-on:click="show_modal=false">&times;</button>
+                    </div>
+                    <!-- 模态框主体 -->
+                    <div class="modal-body">
+                        <form action="#" id="form" class="form-horizontal">
+                            <div class="form-body">
+                                <div class="form-group">
+                                    <input name="content" placeholder="todos" class="form-control" type="text" v-model="temp_content">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- 模态框底部 -->
+                    <div class="modal-footer">
+                        <button type="button" id="btnSave" class="btn btn-primary" @click="saveTodo()">Save</button>
+
+                        <button type="button" class="btn btn-secondary" v-on:click="show_modal=false">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            todos: [],
+            temp_content: '',
+            show_modal:false,
+            save_method: 'add',
+            edit_index: -1
+        },
+        created: function () {
+            this.fetch()
+        },
+
+        // methods that implement data logic.
+        // note there's no DOM manipulation here at all.
+        methods: {
+            fetch:function(){
+                var self = this
+                axios.get('/api/todo')
+                    .then(function (res) {
+                            self.todos = res.data
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            addTodo: function (){
+                var self = this
+                self.show_modal = true
+                self.save_method = 'add'
+            },
+
+            editTodo: function (todo,index) {
+                var self = this
+                self.show_modal = true
+                self.save_method = 'edit'
+                self.temp_content = todo.content;
+                self.edit_index = index;
+            },
+            saveTodo: function () {
+                var self = this
+                var value = self.temp_content;
+                if (!value) {
+                    return;
+                }
+                if (self.save_method == 'add') {
+                    axios.post('api/todo', {
+                        content: value,
+                    })
+                        .then(function (res) {
+                            self.fetch();
+                            self.temp_content = '';
+                            self.show_modal = false;
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+                }else if(self.save_method == 'edit'){
+                    axios.put('api/todo/'+self.edit_index, {
+                        content: value,
+                    })
+                        .then(function (res) {
+                            self.fetch();
+                            self.temp_content = '';
+                            self.show_modal = false;
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+
+                }
+            },
+
+            removeTodo: function (index) {
+                var self = this;
+                axios.delete('api/todo/'+index)
+                    .then(function (res) {
+                        self.fetch();
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+
+            },
+
+
+
+        },
+
+    })
+</script>
+
+
+</body>
+</html>
